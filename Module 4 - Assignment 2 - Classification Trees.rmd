@@ -1,0 +1,144 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+# Module 4 - Assignment 2 - Classification Trees
+## Emily Watson
+### BAN 502
+
+```{r}
+library(tidyverse)
+library(caret)
+library(rpart)
+library(rattle)
+library(RColorBrewer)
+```
+
+```{r}
+parole <- read_csv("parole.csv")
+parole <- parole %>% mutate(male = as_factor(as.character(male))) %>% mutate(male = fct_recode(male,
+"male" = "1",
+"female" = "0"))
+parole <- parole %>% mutate(race = as_factor(as.character(race))) %>% mutate(race = fct_recode(race,
+"white" = "1",
+"other" = "2"))
+parole <- parole %>% mutate(state = as_factor(as.character(state))) %>% mutate(state = fct_recode(state,
+"Kentucky" = "2",
+"Louisiana" = "3",
+"Virginia" = "4",
+"Other" = "1"))
+parole <- parole %>% mutate(crime = as_factor(as.character(crime))) %>% mutate(crime = fct_recode(crime,
+"larceny" = "2",
+"drug" = "3",
+"driving" = "4",
+"Other" = "1"))
+parole <- parole %>% mutate(multiple.offenses = as_factor(as.character(multiple.offenses))) %>% mutate(multiple.offenses = fct_recode(multiple.offenses,
+"multiple offenses" = "1",
+"Singular" = "0"))
+parole <- parole %>% mutate(violator = as_factor(as.character(violator))) %>% mutate(violator = fct_recode(violator,
+"Violated" = "1",
+"No Violations" = "0"))
+```
+
+```{r}
+set.seed(12345)
+train.rows = createDataPartition(y = parole$violator, p=0.7, list = FALSE) #
+train = parole[train.rows,] 
+test = parole[-train.rows,]
+```
+
+```{r}
+tree1 <- rpart(violator ~., train, method="class")
+fancyRpartPlot(tree1)
+```
+
+We are unable to really determine the prediction of a parolee from Louisiana who is 40 who served a 5 year sentence. We have to stop at race because the race was not provided in the description. Based on the other factors we can assumed that this predicts that the parolee was a violator, being over 30 and having a longer sentence. 
+
+```{r}
+printcp(tree1)
+plotcp(tree1)
+```
+
+According to this the CP value selected for least error is 1.
+
+```{r}
+tree2 = prune(tree1,cp= tree1$cptable[which.min(tree1$cptable[,"xerror"]),"CP"])
+```
+
+In the root tree, more people did not violate parole than those who did. 
+
+```{r}
+treepred = predict(tree1, train, type = "class")
+head(treepred)
+```
+
+```{r}
+confusionMatrix(treepred,train$violator,positive="No Violations")
+```
+
+The accuracy is 90%. Specificity is 95% and sensitivity is 49%. 
+
+```{r}
+tree3 <- rpart(violator ~., test, method="class")
+treepred1 = predict(tree3, test, type = "class")
+head(treepred1)
+```
+
+```{r}
+confusionMatrix(treepred1,test$violator,positive="No Violations")
+```
+
+The test data is pretty close to the training data. The accuracy is 91%, the sensiivity is 97% and the specificity is 43%. 
+
+```{r}
+Blood <- read_csv("Blood.csv")
+Blood <- Blood %>% mutate(DonatedMarch = as_factor(as.character(DonatedMarch))) %>% mutate(DonatedMarch = fct_recode(DonatedMarch,
+"Yes" = "1",
+"No" = "0"))
+```
+
+```{r}
+set.seed(1234)
+train.rows = createDataPartition(y = Blood$DonatedMarch, p=0.7, list = FALSE) #
+train2 = Blood[train.rows,] 
+test2 = Blood[-train.rows,]
+```
+
+```{r}
+tree4 <- rpart(DonatedMarch ~., train2, method="class")
+fancyRpartPlot(tree4)
+```
+
+```{r}
+printcp(tree4)
+plotcp(tree4)
+```
+
+The best CP woud be the .034 per the model. 
+
+```{r}
+tree5 = prune(tree4,cp= tree4$cptable[which.min(tree4$cptable[,"xerror"]),"CP"])
+fancyRpartPlot(tree5)
+```
+
+```{r}
+treepred2 = predict(tree4, train2, type = "class")
+head(treepred2)
+```
+
+```{r}
+confusionMatrix(treepred2,train2$DonatedMarch,positive="Yes")
+```
+
+```{r}
+tree6 <- rpart(DonatedMarch ~., test2, method="class")
+treepred3 = predict(tree6, test2, type = "class")
+head(treepred3)
+```
+
+```{r}
+confusionMatrix(treepred3,test2$DonatedMarch,positive="Yes")
+```
+
+The models of both the test and training data for the blood data set are close in numbers. The training data has a 83% accuracy rate, a sensitivity rate of 46% and a specificity rate of 94%. The testing data has a 81% accuracy rate, a sensitivity rate of 35% and a specificity rate of 95%. The sensitivty is the most varied. 

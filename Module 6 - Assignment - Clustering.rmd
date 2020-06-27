@@ -1,0 +1,131 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+# Module 6 - Clustering
+## Emily Watson
+### BAN 502
+
+```{r}
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(dendextend)
+```
+
+```{r}
+trucks <- read_csv("trucks.csv")
+```
+
+Task 1: Plot Speeding v. Distance
+```{r}
+ggplot(trucks, aes(x=Distance, y=Speeding)) + geom_point()
+```
+
+The drivers who speed over 65% of the time are all drivers who drive longer distances. Drivers who drive less distances appear to be concentrated closer to 0 in chances of speeding. 
+
+
+Task 2: New data frame and Scale
+```{r}
+trucks2 =  trucks %>% select(Distance,Speeding)
+```
+
+```{r}
+trucks2_scaled = as.data.frame(scale(trucks2))
+summary(trucks2_scaled)
+```
+
+
+Task 3: Try 2 clusters, visualize, comment
+```{r}
+set.seed(64)
+clusters1 <- kmeans(trucks2_scaled, 2)
+```
+
+```{r}
+fviz_cluster(clusters1, trucks2_scaled)
+```
+
+The clusters have a hard line created with distance, separating drivers who drive more from drivers who drive less. There appears to be drivers with greater chance of speeding in the blue cluster. 
+
+
+Task 4: Optimal # of clusters
+```{r}
+set.seed(64)
+fviz_nbclust(trucks2_scaled, kmeans, method = "wss") 
+```
+
+```{r}
+set.seed(64)
+fviz_nbclust(trucks2_scaled, kmeans, method = "silhouette")
+```
+
+4 appears to be the crook in the first visualization and 4 is the choice in the second visualization.
+
+
+Task 5: Using Optimal # of clusters
+```{r}
+set.seed(64)
+clusters2 <- kmeans(trucks2_scaled, 4)
+fviz_cluster(clusters2, trucks2_scaled)
+```
+
+Task 6: Categorize Clusters
+1. Drivers who drive less distance and are less likley to speed
+2. Drivers who driver longer distance and are more likely to speed.
+3. Drivers who drive less distance and are slightly more likely to speed
+4. Drivers who drive longer distance and are less likely to speed.
+
+
+Read in bball
+```{r}
+bball <- read_csv("kenpom20.csv")
+```
+
+Task 7: Scale, Look for Optimal Cluster #
+```{r}
+bball2 = bball %>% select(-TeamName)
+```
+
+```{r}
+bball2_scaled = as.data.frame(scale(bball2))
+summary(bball2_scaled)
+```
+
+```{r}
+set.seed(123)
+fviz_nbclust(bball2_scaled, kmeans, method = "wss") 
+```
+
+```{r}
+set.seed(123)
+fviz_nbclust(bball2_scaled, kmeans, method = "silhouette") 
+```
+
+The first method seems less clear than the second one. With the first method, I am unable to really see the "elbow" mentioned in lecture. The best "elbow" I see is around cluster # 3. In the second method, it clearly points to 2.
+
+
+Task 8: 4 clusters, review
+```{r}
+set.seed(1234)
+clusters3 <- kmeans(bball2_scaled, 4)
+fviz_cluster(clusters3, bball2_scaled)
+```
+
+Cluster 1 is in the middle and all other clusters converge from outside of Cluster 1 towards the middle. 
+
+
+Task 9: Converge cluster # to data frame, plot, review. 
+```{r}
+bball2 = bball2 %>% mutate(clusternum = clusters3$cluster)
+```
+
+```{r}
+ggplot(bball2, aes(x = AdjOE, y = AdjDE, color = factor(clusternum))) + geom_point()
+```
+
+Cluster 1: This is in the middle of the scale, with seemlingly equal points scored on offense and defense. 
+Cluster 2: This cluster has more points scored during offense, but less scored during defense. 
+Cluster 3: This cluster has less points scored in offense, and more points scored during defense. 
+Cluster 4: This spots more in the upper right quandrant, with more points scored during offense and somewhat more points scored during defense, but is still plotting more in the middle of the defense scale. 
